@@ -1,0 +1,358 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tikz}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{parskip}
+
+\definecolor{codebg}{RGB}{245,245,245}
+\definecolor{codekw}{RGB}{0,90,150}
+\definecolor{codestr}{RGB}{150,60,20}
+\definecolor{codecom}{RGB}{110,110,110}
+
+\lstset{
+  backgroundcolor=\color{codebg},
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{codekw}\bfseries,
+  stringstyle=\color{codestr},
+  commentstyle=\color{codecom}\itshape,
+  breaklines=true,
+  showstringspaces=false,
+  frame=single,
+  rulecolor=\color{gray!40},
+  language=Python,
+  xleftmargin=1em,
+  xrightmargin=1em,
+  aboveskip=1em,
+  belowskip=1em,
+}
+
+\hypersetup{colorlinks=true, linkcolor=blue!50!black, urlcolor=blue!50!black}
+
+\title{\Large Reconnaissance d'image par CNN\\[0.3em]\normalsize Jour 1 --- Images, tenseurs et donn\'ees}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\vspace{-2em}
+\tableofcontents
+
+\section{Ce qu'on fait aujourd'hui et pourquoi}
+
+Avant d'entra\^iner quoi que ce soit, il faut comprendre ce qu'on donne
+\`a manger \`a un r\'eseau de neurones. Un CNN (r\'eseau de neurones
+convolutif) ne \guillemotleft~voit~\guillemotright\ pas une image comme nous : il manipule des
+tableaux de nombres. Le Jour~1 sert uniquement \`a construire cette
+intuition et \`a pr\'eparer les donn\'ees, \emph{avant} de toucher au
+mod\`ele (Jour~2).
+
+Le fichier concern\'e est \texttt{src/data.py}. \`A la fin de cette
+lecture, tu devrais savoir r\'epondre \`a~:
+\begin{itemize}[nosep]
+  \item Comment une image est stock\'ee en m\'emoire (pixels, canaux) ?
+  \item Qu'est-ce qu'un \emph{tenseur} et pourquoi ce mot revient partout ?
+  \item Pourquoi on divise les pixels par 255 ?
+  \item Pourquoi on s\'epare les donn\'ees en \guillemotleft~train~\guillemotright\ et \guillemotleft~test~\guillemotright\ ?
+  \item Que contient exactement CIFAR-10 ?
+\end{itemize}
+
+\section{Comment un ordinateur repr\'esente une image}
+
+\subsection{Le pixel}
+
+Une image num\'erique est une grille de petits carr\'es de couleur
+appel\'es \emph{pixels} (\emph{picture element}). Une image de
+32~$\times$~32 contient $32 \times 32 = 1024$ pixels, dispos\'es en
+32~lignes et 32~colonnes.
+
+\subsection{La couleur : le mod\`ele RGB}
+
+Chaque pixel couleur est cod\'e par trois nombres entre 0 et 255~:
+\begin{itemize}[nosep]
+  \item \textbf{R} (Red) --- intensit\'e de rouge
+  \item \textbf{G} (Green) --- intensit\'e de vert
+  \item \textbf{B} (Blue) --- intensit\'e de bleu
+\end{itemize}
+
+En m\'elangeant ces trois intensit\'es on obtient n'importe quelle
+couleur. Par exemple $(255, 0, 0)$ est un rouge pur, $(0, 0, 0)$ est
+noir, $(255, 255, 255)$ est blanc, $(255, 165, 0)$ est orange.
+
+\begin{center}
+\begin{tikzpicture}[x=1cm,y=1cm]
+  \foreach \i in {0,...,4} {
+    \foreach \j in {0,...,3} {
+      \pgfmathsetmacro{\r}{50+\i*40}
+      \pgfmathsetmacro{\g}{80+\j*40}
+      \definecolor{tmpcol}{RGB}{\r,\g,180}
+      \fill[tmpcol] (\i,\j) rectangle ++(1,1);
+      \draw[white,line width=0.5pt] (\i,\j) rectangle ++(1,1);
+    }
+  }
+\end{tikzpicture}
+\\[0.3em]
+{\small Une image n'est qu'une grille de pixels, chacun \'etant un triplet de nombres.}
+\end{center}
+
+Une image couleur de taille $H \times L$ (hauteur $\times$ largeur) est
+donc repr\'esent\'ee par $H \times L \times 3$ nombres --- le \guillemotleft~3~\guillemotright\
+correspond aux trois \emph{canaux} R, G, B. Pour CIFAR-10, chaque image
+fait $32 \times 32 \times 3 = 3072$ nombres.
+
+\section{Le tenseur : la structure de donn\'ees du deep learning}
+
+Le mot \emph{tenseur} revient partout en deep learning (le \guillemotleft~T~\guillemotright\ de
+Tensor\textbf{Flow}). C'est simplement une g\'en\'eralisation de notions
+que tu connais d\'ej\`a~:
+
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+Dimension & Nom usuel & Exemple \\
+\midrule
+0 & scalaire & \texttt{5} \\
+1 & vecteur & \texttt{[5, 3, 1]} \\
+2 & matrice & tableau de nombres (lignes/colonnes) \\
+3+ & tenseur & empilement de matrices \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+En pratique, en Python/NumPy/TensorFlow, tout --- scalaire, vecteur,
+matrice ou tenseur --- est repr\'esent\'e par le m\^eme objet
+(\texttt{np.ndarray} ou \texttt{tf.Tensor}), caract\'eris\'e par sa
+\textbf{forme} (\emph{shape}) : la liste des tailles de chaque dimension.
+
+Une image couleur est donc un tenseur de forme $(32, 32, 3)$ : 32 lignes,
+32 colonnes, 3 canaux. Et un \emph{lot} (\emph{batch}) de 50~000 images
+d'entra\^inement est un tenseur de forme $(50000, 32, 32, 3)$ : c'est
+exactement ce que renvoie \texttt{cifar10.load\_data()}.
+
+\textbf{Pourquoi cette dimension suppl\'ementaire pour le batch ?} Parce
+qu'un r\'eseau de neurones ne traite jamais une image \`a la fois : il
+en traite plusieurs en parall\`ele (par exemple 64), ce qui est bien plus
+rapide sur CPU/GPU gr\^ace au calcul matriciel. Cette dimension s'appelle
+souvent \texttt{N} (nombre d'exemples) dans la convention
+\texttt{(N, H, W, C)}.
+
+\section{Le dataset CIFAR-10}
+
+CIFAR-10 est un jeu de donn\'ees standard, cr\'e\'e \`a l'universit\'e de
+Toronto, tr\`es utilis\'e pour apprendre la classification d'images
+parce qu'il est petit, rapide \`a entra\^iner et d\'ej\`a \'etiquet\'e.
+
+\begin{center}
+\begin{tabular}{@{}ll@{}}
+\toprule
+Caract\'eristique & Valeur \\
+\midrule
+Nombre total d'images & 60~000 \\
+Images d'entra\^inement (\emph{train}) & 50~000 \\
+Images de test (\emph{test}) & 10~000 \\
+Taille de chaque image & $32 \times 32$ pixels, RGB \\
+Nombre de classes & 10 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Les 10 classes, avec leur indice num\'erique (c'est cet indice qui est
+r\'eellement stock\'e, pas le mot) :
+
+\begin{center}
+\begin{tabular}{@{}cl@{}c@{}cl@{}}
+\toprule
+Indice & Classe & \phantom{xx} & Indice & Classe \\
+\midrule
+0 & avion & & 5 & chien \\
+1 & voiture & & 6 & grenouille \\
+2 & oiseau & & 7 & cheval \\
+3 & chat & & 8 & bateau \\
+4 & cerf & & 9 & camion \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+C'est exactement la liste \texttt{CLASS\_NAMES} dans \texttt{src/data.py}.
+
+\section{Les labels : pourquoi de simples entiers}
+
+Pour chaque image, CIFAR-10 fournit un \emph{label} (\'etiquette) : un
+entier entre 0 et 9 indiquant la bonne classe. Il existe deux fa\c{c}ons
+courantes d'encoder \c{c}a en deep learning~:
+
+\begin{itemize}
+  \item \textbf{Encodage entier} (\emph{sparse}) : le label est
+  directement \texttt{3} pour \guillemotleft~chat~\guillemotright.
+  \item \textbf{One-hot} : le label est un vecteur de 10 valeurs, toutes
+  \`a 0 sauf un 1 \`a la position de la bonne classe --- pour \guillemotleft~chat~\guillemotright\
+  (indice 3) : \texttt{[0,0,0,1,0,0,0,0,0,0]}.
+\end{itemize}
+
+Les deux repr\'esentent la m\^eme information. On garde ici l'encodage
+entier (plus simple, moins de m\'emoire), et c'est pour \c{c}a que
+\texttt{model.py} utilise la fonction de perte
+\texttt{sparse\_categorical\_\allowbreak crossentropy} plut\^ot que
+\texttt{categorical\_crossentropy} (qui, elle, attendrait du one-hot). On
+reverra cette histoire de \guillemotleft~fonction de perte~\guillemotright\ en d\'etail au
+Jour~2.
+
+\section{La normalisation : pourquoi diviser par 255}
+
+Dans \texttt{data.py}~:
+\begin{lstlisting}
+x_train = x_train.astype("float32") / 255.0
+\end{lstlisting}
+
+Chaque pixel est \`a l'origine un entier entre 0 et 255. On le convertit
+en nombre \`a virgule (\texttt{float32}) puis on le ram\`ene entre 0 et 1
+en divisant par 255 (la valeur maximale possible).
+
+\textbf{Pourquoi c'est important ?} Un r\'eseau de neurones apprend en
+ajustant progressivement ses param\`etres via un algorithme appel\'e
+\emph{descente de gradient} (on d\'etaillera au Jour~2). Cet algorithme
+est beaucoup plus stable et converge plus vite quand toutes les entr\'ees
+sont \`a une \'echelle comparable, proche de 0. Avec des valeurs brutes
+allant jusqu'\`a 255, les calculs internes (multiplications, sommes)
+produisent des nombres bien plus grands, ce qui peut :
+
+\begin{itemize}[nosep]
+  \item ralentir l'apprentissage (il faut plus d'it\'erations pour
+  converger) ;
+  \item le rendre instable (les mises \`a jour des param\`etres peuvent
+  \guillemotleft~sauter~\guillemotright\ au lieu de converger doucement) ;
+  \item saturer certaines fonctions d'activation qui \'ecrasent les
+  grandes valeurs (moins de signal utile pour apprendre).
+\end{itemize}
+
+C'est une des r\`egles les plus universelles du deep learning : \textbf{on
+normalise quasiment toujours les entr\'ees}. Pour des images, diviser par
+255 est la m\'ethode la plus simple et suffit largement ici.
+
+\section{Pourquoi s\'eparer donn\'ees d'entra\^inement et de test}
+
+\texttt{cifar10.load\_data()} renvoie directement deux ensembles
+s\'epar\'es. C'est volontaire et fondamental~:
+
+\begin{itemize}
+  \item Le mod\`ele apprend uniquement sur les 50~000 images de
+  \textbf{train}.
+  \item On \'evalue sa performance sur les 10~000 images de
+  \textbf{test}, qu'il n'a \emph{jamais vues} pendant l'entra\^inement.
+\end{itemize}
+
+Pourquoi ? Un mod\`ele suffisamment complexe peut \guillemotleft~apprendre par
+c\oe{}ur~\guillemotright\ les images d'entra\^inement (il m\'emorise plut\^ot qu'il ne
+g\'en\'eralise). Un tel mod\`ele obtiendrait un score parfait sur les
+donn\'ees qu'il a d\'ej\`a vues, mais serait mauvais sur une image
+nouvelle --- inutile en pratique. Ce ph\'enom\`ene s'appelle
+l'\textbf{overfitting} (surapprentissage) ; on le reverra concr\`etement
+au Jour~2 quand on comparera l'accuracy sur train et sur test pendant
+l'entra\^inement.
+
+\`A retenir : \emph{la seule mesure de performance qui compte, c'est
+celle sur des donn\'ees jamais vues}.
+
+\section{Lecture comment\'ee de \texttt{src/data.py}}
+
+\begin{lstlisting}
+import tensorflow as tf
+
+CLASS_NAMES = [
+    "avion", "voiture", "oiseau", "chat", "cerf",
+    "chien", "grenouille", "cheval", "bateau", "camion",
+]
+
+def load_data():
+    (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
+
+    # normalisation : 0-255 -> 0-1 (voir section 6)
+    x_train = x_train.astype("float32") / 255.0
+    x_test = x_test.astype("float32") / 255.0
+
+    # y_train/y_test arrivent en colonnes (N, 1), on les aplatit en (N,)
+    y_train = y_train.flatten()
+    y_test = y_test.flatten()
+
+    return (x_train, y_train), (x_test, y_test)
+\end{lstlisting}
+
+D\'etail du seul point pas encore expliqu\'e : \texttt{flatten()}. Keras
+renvoie les labels sous forme de tableau \`a deux dimensions, de forme
+$(50000, 1)$ --- une colonne. \texttt{flatten()} le transforme en tableau
+\`a une dimension, de forme $(50000,)$, ce qui est plus simple \`a
+manipuler (par exemple \texttt{y\_train[0]} donne directement l'entier du
+label, pas un tableau \`a un \'el\'ement).
+
+\section{\`A faire toi-m\^eme}
+
+Sur ta machine (l'environnement d'ex\'ecution distant n'a pas acc\`es au
+serveur qui h\'eberge CIFAR-10) :
+
+\begin{enumerate}
+  \item Lance :
+\begin{lstlisting}
+cd src
+python data.py
+\end{lstlisting}
+  Tu dois voir s'afficher la forme des tableaux
+  (\texttt{Train: (50000, 32, 32, 3)}, \texttt{Test: (10000, 32, 32, 3)})
+  et un exemple de label.
+
+  \item Visualise quelques images pour v\'erifier que tout correspond
+  bien, avec ce petit script \`a coller dans un fichier \`a part
+  (par exemple \texttt{src/explore.py}) :
+\begin{lstlisting}
+import matplotlib.pyplot as plt
+from data import load_data, CLASS_NAMES
+
+(x_train, y_train), _ = load_data()
+
+fig, axes = plt.subplots(2, 5, figsize=(10, 4))
+for i, ax in enumerate(axes.flat):
+    ax.imshow(x_train[i])
+    ax.set_title(CLASS_NAMES[y_train[i]])
+    ax.axis("off")
+plt.tight_layout()
+plt.show()
+\end{lstlisting}
+  Tu devrais voir 10 petites images 32$\times$32 avec leur nom de classe
+  au-dessus. C'est la meilleure fa\c{c}on de \guillemotleft~voir~\guillemotright\ concr\`etement
+  ce que le mod\`ele va recevoir en entr\'ee.
+\end{enumerate}
+
+\section{R\'ecapitulatif}
+
+\begin{center}
+\begin{tabular}{@{}p{4cm}p{10cm}@{}}
+\toprule
+Concept & En une phrase \\
+\midrule
+Pixel & Un point de l'image, cod\'e par 3 nombres (R, G, B) entre 0 et 255. \\
+Tenseur & Un tableau de nombres \`a $n$ dimensions, caract\'eris\'e par sa forme (\emph{shape}). \\
+Shape $(N,H,W,C)$ & $N$ images, hauteur $H$, largeur $W$, $C$ canaux de couleur. \\
+Normalisation & Ramener les pixels entre 0 et 1 pour un apprentissage plus rapide et stable. \\
+Label entier & L'indice (0-9) de la bonne classe, sans encodage one-hot. \\
+Train / test & S\'eparer les donn\'ees pour mesurer si le mod\`ele g\'en\'eralise, pas seulement m\'emorise. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{La suite : Jour 2}
+
+Une fois ces notions solides, on passera \`a \texttt{src/model.py} et
+\texttt{src/train.py} : construire le CNN lui-m\^eme (convolution,
+filtre, pooling), lancer un premier entra\^inement, et comprendre ce que
+veulent dire \emph{accuracy}, \emph{loss}, \emph{overfitting} et
+\emph{dropout} en pratique, sur des courbes r\'eelles.
+
+\end{document}

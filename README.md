@@ -7,9 +7,7 @@ TensorFlow/Keras, servi via une petite interface Streamlit.
 ## Stack choisie (et pourquoi)
 
 - **TensorFlow / Keras** plutot que PyTorch : API plus haut niveau, moins de
-  code "boilerplate", ideal pour un premier CNN. Une fois les concepts
-  maitrises (Jour 1-3), le meme modele peut etre reecrit en PyTorch pour
-  comparer les deux, si le temps le permet.
+  code "boilerplate", adaptee a un premier CNN.
 - **CIFAR-10** comme dataset : 60 000 images 32x32 deja labellisees dans 10
   classes (avion, voiture, oiseau, chat, cerf, chien, grenouille, cheval,
   bateau, camion), integre a Keras (`tf.keras.datasets.cifar10`). Pas besoin
@@ -50,12 +48,9 @@ python src/predict.py chemin/vers/mon_image.jpg
 streamlit run app/app.py
 ```
 
-> Note : cet environnement d'execution n'a pas acces a `cs.toronto.edu` (le
-> serveur qui heberge CIFAR-10), donc l'entrainement doit se faire sur ta
-> machine en local, ou` l'acces internet est libre. Le code lui-meme a ete
-> verifie ici (build du modele, boucle d'entrainement testee avec des donnees
-> factices, pretraitement d'image) : il n'y a plus qu'a lancer `train.py`
-> chez toi pour obtenir un vrai modele.
+Le premier lancement de `train.py` telecharge CIFAR-10 (~170 Mo) et prend
+quelques minutes sur CPU pour une quinzaine d'epochs. Le modele entraine est
+sauvegarde dans `models/cnn_model.keras` (non versionne, voir `.gitignore`).
 
 ## Feuille de route - 5 jours
 
@@ -70,8 +65,8 @@ streamlit run app/app.py
 
 **Jour 3 - Ameliorer le modele**
 - Data augmentation (rotation, flip, zoom) pour reduire l'overfitting.
-- Optionnel : transfer learning avec MobileNetV2 pre-entraine (bien meilleure
-  precision, peu de code en plus) si le temps le permet.
+- Optionnel : transfer learning avec MobileNetV2 pre-entraine, pour une
+  meilleure precision sans beaucoup plus de code.
 - `src/predict.py` : tester le modele sur des photos perso (pas juste CIFAR-10).
 
 **Jour 4 - Interface** (`app/app.py`)
@@ -81,14 +76,10 @@ streamlit run app/app.py
 **Jour 5 - Deploiement local & polish**
 - Verifier les cas limites (mauvaise image, mauvais format).
 - `streamlit run app/app.py` accessible sur le reseau local.
-- Bilan : ce qu'on a appris, pistes pour aller plus loin (plus de classes,
-  webcam en direct, export mobile...).
+- Pistes d'extension : plus de classes, webcam en direct, export mobile.
 
-## Comment on va travailler
+## Notes
 
-Chaque jour correspond a un fichier ci-dessus. Le code est deja pose avec des
-commentaires qui expliquent le "pourquoi" de chaque choix (normalisation,
-dropout, softmax...) pour servir de support d'apprentissage. Dis-moi a quel
-jour tu veux commencer et on approfondit ensemble : je peux t'expliquer un
-concept en detail, modifier l'architecture, deboguer une erreur d'entrainement,
-ou ajouter une fonctionnalite (webcam, plus de classes, transfer learning...).
+Le code est commente pour expliquer le "pourquoi" de chaque choix
+(normalisation, dropout, softmax...), chaque fichier correspondant a une
+etape de la feuille de route ci-dessus.
